@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyitLang Interpreter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+        #output {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            background-color: #f5f5f5;
+        }
+        h2 {
+            color: #333;
+        }
+        .syntax-guide {
+            margin-top: 20px;
+        }
+        .syntax-guide ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .syntax-guide li {
+            margin-bottom: 10px;
+        }
+        .syntax-guide span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>PyitLang Interpreter</h1>
+    <textarea id="codeInput" placeholder="Enter PyitLang code here"></textarea>
+    <button onclick="runCode()">Run Code</button>
+
+    <div id="output"></div>
+
+    <div class="syntax-guide">
+        <h2>PyitLang Syntax Guide</h2>
+        <ul>
+            <li><span>thatmat &lt;var&gt; = &lt;value&gt;</span>: Declares a variable with a given value. Example: <code>thatmat x = 10</code></li>
+            <li><span>phyay &lt;var&gt; = &lt;value&gt;</span>: Assigns a new value to an existing variable. Example: <code>phyay x = 20</code></li>
+            <li><span>pya &lt;value&gt;</span>: Prints a value to the output. Example: <code>pya x</code></li>
+            <li><span>mahsaw &lt;condition&gt; { ... } mahoat { ... }</span>: Conditional block. Executes the first block if the condition is true, else executes the second block. Example: <code>mahsaw x > 10 { pya "Greater" } mahoat { pya "Less" }</code></li>
+            <li><span>akyein &lt;times&gt; { ... }</span>: Loop block that repeats the inner code a specified number of times. Example: <code>akyein 3 { pya "Looping..." }</code></li>
+            <li><span>lohp &lt;function&gt;()</span>: Function declaration or call. Example: <code>lohp getString()</code> to get input from the user.</li>
+        </ul>
+    </div>
+
+    <script>
+        class PyitLangInterpreter {
+            constructor() {
+                this.variables = {};
+                this.output = '';
+            }
+
+            // Execute PyitLang code from a string
+            execute(code) {
+                const lines = code.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+                lines.forEach(line => this.processLine(line));
+                return this.output;
+            }
+
+            // Process a single line of PyitLang code
+            processLine(line) {
+                if (line.startsWith("thatmat")) {
+                    this.declareVariable(line);
+                } else if (line.startsWith("phyay")) {
+                    this.assignVariable(line);
+                } else if (line.startsWith("pya")) {
+                    this.printStatement(line);
+                } else if (line.startsWith("mahsaw")) {
+                    this.handleCondition(line);
+                } else if (line.startsWith("akyein")) {
+                    this.handleLoop(line);
+                } else if (line.startsWith("lohp")) {
+                    this.handleFunction(line);
+                } else {
+                    this.output += `Syntax error: ${line}\n`;
+                }
+            }
+
+            // Declare a variable
+            declareVariable(line) {
+                const regex = /^thatmat (\w+) = (.+)$/;
+                const match = line.match(regex);
+                if (match) {
+                    const [_, varName, value] = match;
+                    this.variables[varName] = this.evaluateExpression(value);
+                    this.output += `Variable '${varName}' declared with value: ${this.variables[varName]}\n`;
+                } else {
+                    this.output += "Invalid variable declaration syntax.\n";
+                }
+            }
+
+            // Assign a value to a variable
+            assignVariable(line) {
+                const regex = /^phyay (\w+) = (.+)$/;
+                const match = line.match(regex);
+                if (match) {
+                    const [_, varName, value] = match;
+                    if (this.variables.hasOwnProperty(varName)) {
+                        this.variables[varName] = this.evaluateExpression(value);
+                        this.output += `Variable '${varName}' assigned new value: ${this.variables[varName]}\n`;
+                    } else {
+                        this.output += `Variable '${varName}' is not defined.\n`;
+                    }
+                } else {
+                    this.output += "Invalid assignment syntax.\n";
+                }
+            }
+
+            // Print a statement
+            printStatement(line) {
+                const regex = /^pya (.+)$/;
+                const match = line.match(regex);
+                if (match) {
+                    const value = this.evaluateExpression(match[1]);
+                    this.output += value + "\n";
+                } else {
+                    this.output += "Invalid print syntax.\n";
+                }
+            }
+
+            // Evaluate an expression (like variables, numbers, etc.)
+            evaluateExpression(expr) {
+                expr = expr.trim();
+                if (this.variables.hasOwnProperty(expr)) {
+                    return this.variables[expr];
+                } else if (!isNaN(Number(expr))) {
+                    return Number(expr);
+                } else {
+                    return expr;
+                }
+            }
+
+            // Handle conditional statement
+            handleCondition(line) {
+                const regex = /^mahsaw (.+?) {([\s\S]+?)} mahoat {([\s\S]+?)}$/;
+                const match = line.match(regex);
+                if (match) {
+                    const condition = match[1].trim();
+                    const trueBlock = match[2].trim();
+                    const falseBlock = match[3].trim();
+
+                    const conditionResult = this.evaluateExpression(condition);
+                    if (conditionResult) {
+                        this.executeBlock(trueBlock);
+                    } else {
+                        this.executeBlock(falseBlock);
+                    }
+                } else {
+                    this.output += `Invalid conditional syntax: ${line}\n`;
+                }
+            }
+
+            // Execute block of code (i.e., contents inside curly braces)
+            executeBlock(block) {
+                const lines = block.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+                lines.forEach(line => this.processLine(line));
+            }
+
+            // Handle loop statement
+            handleLoop(line) {
+                const regex = /^akyein (\d+) {([\s\S]+?)}$/;
+                const match = line.match(regex);
+                if (match) {
+                    const times = Number(match[1]);
+                    const block = match[2].trim();
+
+                    for (let i = 0; i < times; i++) {
+                        this.executeBlock(block);
+                    }
+                } else {
+                    this.output += "Invalid loop syntax.\n";
+                }
+            }
+
+            // Handle function definition or call
+            handleFunction(line) {
+                const regex = /^lohp (\w+)\((.*)\)$/;
+                const match = line.match(regex);
+                if (match) {
+                    const funcName = match[1];
+                    const args = match[2].split(',').map(arg => arg.trim());
+
+                    if (funcName === "getString") {
+                        // Handle getString function to take input from the user
+                        const input = prompt("Enter a value: ");
+                        if (input !== null) {
+                            this.output += `Input received: ${input}\n`;
+                        } else {
+                            this.output += "No input received.\n";
+                        }
+                    } else {
+                        this.output += `Unknown function: ${funcName}\n`;
+                    }
+                } else {
+                    this.output += "Invalid function definition syntax.\n";
+                }
+            }
+        }
+
+        // Web Interface Logic
+        function runCode() {
+            const codeInput = document.getElementById('codeInput').value;
+            const interpreter = new PyitLangInterpreter();
+            const result = interpreter.execute(codeInput);
+            document.getElementById('output').innerText = result;
+        }
+    </script>
+</body>
+</html>
